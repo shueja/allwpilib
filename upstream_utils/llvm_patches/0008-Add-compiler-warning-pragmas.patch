@@ -1,26 +1,25 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: PJ Reiniger <pj.reiniger@gmail.com>
 Date: Sun, 8 May 2022 13:34:07 -0400
-Subject: [PATCH 08/36] Add compiler warning pragmas
+Subject: [PATCH 08/34] Add compiler warning pragmas
 
 ---
- llvm/include/llvm/ADT/FunctionExtras.h | 11 +++++++++++
- llvm/include/llvm/ADT/Hashing.h        |  9 +++++++++
- llvm/include/llvm/ADT/SmallVector.h    |  8 ++++++++
- llvm/include/llvm/Support/MathExtras.h |  9 +++++++++
- llvm/include/llvm/Support/MemAlloc.h   | 13 +++++++++++++
- llvm/lib/Support/raw_ostream.cpp       |  4 ++++
- llvm/unittests/ADT/DenseMapTest.cpp    |  4 ++++
- llvm/unittests/ADT/MapVectorTest.cpp   |  7 +++++++
- llvm/unittests/ADT/SmallVectorTest.cpp |  4 ++++
- llvm/unittests/Support/AlignOfTest.cpp |  7 +++----
- 10 files changed, 72 insertions(+), 4 deletions(-)
+ llvm/include/llvm/ADT/FunctionExtras.h    | 11 +++++++++++
+ llvm/include/llvm/ADT/SmallVector.h       |  9 +++++++++
+ llvm/include/llvm/Support/MathExtras.h    |  9 +++++++++
+ llvm/include/llvm/Support/MemAlloc.h      | 13 +++++++++++++
+ llvm/lib/Support/raw_ostream.cpp          |  4 ++++
+ llvm/unittests/ADT/DenseMapTest.cpp       |  4 ++++
+ llvm/unittests/ADT/FunctionExtrasTest.cpp |  6 ++++++
+ llvm/unittests/ADT/SmallVectorTest.cpp    |  4 ++++
+ llvm/unittests/Support/AlignOfTest.cpp    |  7 +++----
+ 9 files changed, 63 insertions(+), 4 deletions(-)
 
 diff --git a/llvm/include/llvm/ADT/FunctionExtras.h b/llvm/include/llvm/ADT/FunctionExtras.h
-index 5641a913d0a35ee2911cf872ad90c3dc864f20f5..043d8d90fff03d571a923c264b49be37a5dffa09 100644
+index c4d0821076d63842927d2abeef4a5189cdf325e7..730822d37c62b992316c850021dc5edb8ff13c36 100644
 --- a/llvm/include/llvm/ADT/FunctionExtras.h
 +++ b/llvm/include/llvm/ADT/FunctionExtras.h
-@@ -56,6 +56,13 @@ namespace llvm {
+@@ -55,6 +55,13 @@ namespace llvm {
  ///   It can hold functions with a non-const operator(), like mutable lambdas.
  template <typename FunctionT> class unique_function;
  
@@ -33,8 +32,8 @@ index 5641a913d0a35ee2911cf872ad90c3dc864f20f5..043d8d90fff03d571a923c264b49be37
 +
  namespace detail {
  
- template <typename T>
-@@ -412,6 +419,10 @@ public:
+ template <typename CallableT, typename ThisT>
+@@ -391,6 +398,10 @@ public:
    }
  };
  
@@ -45,39 +44,15 @@ index 5641a913d0a35ee2911cf872ad90c3dc864f20f5..043d8d90fff03d571a923c264b49be37
  } // end namespace llvm
  
  #endif // LLVM_ADT_FUNCTIONEXTRAS_H
-diff --git a/llvm/include/llvm/ADT/Hashing.h b/llvm/include/llvm/ADT/Hashing.h
-index a5477362a50793985e1e9df9dc77c8a1d5b5846b..08d6edb14eb3cd51405329aae61b9782266a2590 100644
---- a/llvm/include/llvm/ADT/Hashing.h
-+++ b/llvm/include/llvm/ADT/Hashing.h
-@@ -56,6 +56,11 @@
- #include <tuple>
- #include <utility>
- 
-+#ifdef _WIN32
-+#pragma warning(push)
-+#pragma warning(disable : 26495)
-+#endif
-+
- namespace llvm {
- template <typename T, typename Enable> struct DenseMapInfo;
- 
-@@ -697,4 +702,8 @@ struct hash<llvm::hash_code> {
- 
- } // namespace std;
- 
-+#ifdef _WIN32
-+#pragma warning(pop)
-+#endif
-+
- #endif
 diff --git a/llvm/include/llvm/ADT/SmallVector.h b/llvm/include/llvm/ADT/SmallVector.h
-index d7600fe209a58deb07c63e2553f9dad62e06e973..d7788e94b5379f5eba6fbddee50e4b4359da9d80 100644
+index e27d0d71ec6176ee8081660f9ed6ba6672d7828d..913be7105222efb45015485fc04c0ab984dbe638 100644
 --- a/llvm/include/llvm/ADT/SmallVector.h
 +++ b/llvm/include/llvm/ADT/SmallVector.h
-@@ -14,6 +14,14 @@
- #ifndef LLVM_ADT_SMALLVECTOR_H
- #define LLVM_ADT_SMALLVECTOR_H
+@@ -16,6 +16,15 @@
  
+ #include "llvm/ADT/ADL.h"
+ #include "llvm/ADT/DenseMapInfo.h"
++
 +// This file uses std::memcpy() to copy std::pair<unsigned int, unsigned int>.
 +// That type is POD, but the standard doesn't guarantee that. GCC doesn't treat
 +// the type as POD so it throws a warning. We want to consider this a warning
@@ -87,13 +62,13 @@ index d7600fe209a58deb07c63e2553f9dad62e06e973..d7788e94b5379f5eba6fbddee50e4b43
 +#endif
 +
  #include "llvm/Support/Compiler.h"
- #include "llvm/Support/type_traits.h"
  #include <algorithm>
+ #include <cassert>
 diff --git a/llvm/include/llvm/Support/MathExtras.h b/llvm/include/llvm/Support/MathExtras.h
-index 5cabfdd6493fee33fbc74b831dc1fa3c91ba725d..7541447fa2db5e1634d952b1f39957eb725611f4 100644
+index 120a1641110aca97acf2ab9cd3806d94accbb8aa..78c500e18c7639afc02b595b788333b6b9a4e69b 100644
 --- a/llvm/include/llvm/Support/MathExtras.h
 +++ b/llvm/include/llvm/Support/MathExtras.h
-@@ -208,6 +208,11 @@ inline uint64_t maxUIntN(uint64_t N) {
+@@ -219,6 +219,11 @@ inline constexpr uint64_t maxUIntN(uint64_t N) {
    return UINT64_MAX >> (64 - N);
  }
  
@@ -103,10 +78,10 @@ index 5cabfdd6493fee33fbc74b831dc1fa3c91ba725d..7541447fa2db5e1634d952b1f39957eb
 +#endif
 +
  /// Gets the minimum value for a N-bit signed integer.
- inline int64_t minIntN(int64_t N) {
-   assert(N > 0 && N <= 64 && "integer width out of range");
-@@ -215,6 +220,10 @@ inline int64_t minIntN(int64_t N) {
-   return UINT64_C(1) + ~(UINT64_C(1) << (N - 1));
+ inline constexpr int64_t minIntN(int64_t N) {
+   assert(N <= 64 && "integer width out of range");
+@@ -228,6 +233,10 @@ inline constexpr int64_t minIntN(int64_t N) {
+   return UINT64_MAX << (N - 1);
  }
  
 +#ifdef _WIN32
@@ -114,10 +89,10 @@ index 5cabfdd6493fee33fbc74b831dc1fa3c91ba725d..7541447fa2db5e1634d952b1f39957eb
 +#endif
 +
  /// Gets the maximum value for a N-bit signed integer.
- inline int64_t maxIntN(int64_t N) {
-   assert(N > 0 && N <= 64 && "integer width out of range");
+ inline constexpr int64_t maxIntN(int64_t N) {
+   assert(N <= 64 && "integer width out of range");
 diff --git a/llvm/include/llvm/Support/MemAlloc.h b/llvm/include/llvm/Support/MemAlloc.h
-index f3f378b7697a18f57b189c5322b080fe23d45bec..0028e871f6a05baf6172c60c602b8b26e5f116c6 100644
+index 3b086cb171806f3f216a9bac7de46a29da3c5481..9205299d1cc7ddc93d2d5781e744305679ff39c8 100644
 --- a/llvm/include/llvm/Support/MemAlloc.h
 +++ b/llvm/include/llvm/Support/MemAlloc.h
 @@ -22,6 +22,14 @@
@@ -136,7 +111,7 @@ index f3f378b7697a18f57b189c5322b080fe23d45bec..0028e871f6a05baf6172c60c602b8b26
    void *Result = std::malloc(Sz);
    if (Result == nullptr) {
 @@ -84,4 +92,9 @@ allocate_buffer(size_t Size, size_t Alignment);
- void deallocate_buffer(void *Ptr, size_t Size, size_t Alignment);
+ LLVM_ABI void deallocate_buffer(void *Ptr, size_t Size, size_t Alignment);
  
  } // namespace llvm
 +
@@ -146,7 +121,7 @@ index f3f378b7697a18f57b189c5322b080fe23d45bec..0028e871f6a05baf6172c60c602b8b26
 +
  #endif
 diff --git a/llvm/lib/Support/raw_ostream.cpp b/llvm/lib/Support/raw_ostream.cpp
-index 220d850b9bc69f8fc2fba7cd23629eca487cde23..65810ca93fdc1290e3188b5f4fb292a1e1e79b60 100644
+index bf5d06018979474cf6166fed61be93eede0dece1..5496df7f6f83debb8b13bb9b828cdbddab91b07b 100644
 --- a/llvm/lib/Support/raw_ostream.cpp
 +++ b/llvm/lib/Support/raw_ostream.cpp
 @@ -10,6 +10,10 @@
@@ -161,7 +136,7 @@ index 220d850b9bc69f8fc2fba7cd23629eca487cde23..65810ca93fdc1290e3188b5f4fb292a1
  #include "llvm/ADT/StringExtras.h"
  #include "llvm/Config/config.h"
 diff --git a/llvm/unittests/ADT/DenseMapTest.cpp b/llvm/unittests/ADT/DenseMapTest.cpp
-index b710ac07461ba58faa99cedeae7f209dc0f5902b..1f232d3046292c0da940ba4bef7d50604556e4c2 100644
+index fffa07e1978bb3b8c2013073bdd58556d145ff23..1a81ecdd758ce285533fcb0565713f30a6cef33e 100644
 --- a/llvm/unittests/ADT/DenseMapTest.cpp
 +++ b/llvm/unittests/ADT/DenseMapTest.cpp
 @@ -6,6 +6,10 @@
@@ -173,31 +148,30 @@ index b710ac07461ba58faa99cedeae7f209dc0f5902b..1f232d3046292c0da940ba4bef7d5060
 +#endif
 +
  #include "llvm/ADT/DenseMap.h"
+ #include "CountCopyAndMove.h"
  #include "llvm/ADT/DenseMapInfo.h"
- #include "llvm/ADT/DenseMapInfoVariant.h"
-diff --git a/llvm/unittests/ADT/MapVectorTest.cpp b/llvm/unittests/ADT/MapVectorTest.cpp
-index e0f11b60a0223da7c00a47c20b61136bd608bae6..9c802ab30721c9ce58ed65052a6ab467039226ff 100644
---- a/llvm/unittests/ADT/MapVectorTest.cpp
-+++ b/llvm/unittests/ADT/MapVectorTest.cpp
-@@ -6,6 +6,13 @@
- //
- //===----------------------------------------------------------------------===//
+diff --git a/llvm/unittests/ADT/FunctionExtrasTest.cpp b/llvm/unittests/ADT/FunctionExtrasTest.cpp
+index e92f5fcdfce0175eea843e81ef89604e0c2297f6..3a2008adb0697757c68af8ad462b9af716c456a6 100644
+--- a/llvm/unittests/ADT/FunctionExtrasTest.cpp
++++ b/llvm/unittests/ADT/FunctionExtrasTest.cpp
+@@ -329,6 +329,12 @@ TEST(UniqueFunctionTest, InlineStorageWorks) {
+   UniqueFunctionWithInlineStorage(&UniqueFunctionWithInlineStorage);
+ }
  
-+#if defined(__GNUC__)
-+#pragma GCC diagnostic ignored "-Wpedantic"
-+#if !defined(__clang__)
-+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-+#endif
-+#endif
 +
- #include "llvm/ADT/MapVector.h"
- #include "llvm/ADT/iterator_range.h"
- #include "gtest/gtest.h"
++// GCC warns that val in CountCopyAndMove is uninitialized
++#if defined(__GNUC__) && !defined(__clang__)
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wuninitialized"
++#endif
+ // Check that the moved-from captured state is properly destroyed during
+ // move construction/assignment.
+ TEST(UniqueFunctionTest, MovedFromStateIsDestroyedCorrectly) {
 diff --git a/llvm/unittests/ADT/SmallVectorTest.cpp b/llvm/unittests/ADT/SmallVectorTest.cpp
-index 7029038d18d433cef987bedbfa4fda269b24fb8f..f8c37820ef9fdfe0af067f5aa8d2297ed15e73bc 100644
+index f83bc116e4851f39fd6e496ee25ae1fb9acd96ca..5589671f7909d1994626c3f0ad043e64ef9768ab 100644
 --- a/llvm/unittests/ADT/SmallVectorTest.cpp
 +++ b/llvm/unittests/ADT/SmallVectorTest.cpp
-@@ -17,6 +17,10 @@
+@@ -18,6 +18,10 @@
  #include <span>
  #include <stdarg.h>
  
@@ -209,13 +183,13 @@ index 7029038d18d433cef987bedbfa4fda269b24fb8f..f8c37820ef9fdfe0af067f5aa8d2297e
  
  namespace {
 diff --git a/llvm/unittests/Support/AlignOfTest.cpp b/llvm/unittests/Support/AlignOfTest.cpp
-index f84895c18602d3936d623ed79c5d9689cd57cc91..6a50205b143b7ff553066f048a45bf4e1ecc475b 100644
+index 53358a2815daa4d6d55e01b4d286b962d3d947e5..d297da14525295fb5b6d60d2017de177cc48bcf7 100644
 --- a/llvm/unittests/Support/AlignOfTest.cpp
 +++ b/llvm/unittests/Support/AlignOfTest.cpp
 @@ -31,10 +31,9 @@ namespace {
  #pragma clang diagnostic ignored "-Wunknown-pragmas"
  #pragma clang diagnostic ignored "-Winaccessible-base"
- #elif ((__GNUC__ * 100) + __GNUC_MINOR__) >= 402
+ #elif defined(__GNUC__)
 -// Pragma based warning suppression was introduced in GGC 4.2.  Additionally
 -// this warning is "enabled by default".  The warning still appears if -Wall is
 -// suppressed.  Apparently GCC suppresses it when -w is specifed, which is odd.

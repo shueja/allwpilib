@@ -15,7 +15,7 @@ def generate_quickbuf(
     proto_files = proto_dir.glob("*.proto")
     for path in proto_files:
         absolute_filename = path.absolute()
-        subprocess.run(
+        subprocess.check_call(
             [
                 protoc,
                 f"--plugin=protoc-gen-quickbuf={quickbuf_plugin}",
@@ -24,7 +24,7 @@ def generate_quickbuf(
                 absolute_filename,
             ]
         )
-    java_files = (output_directory / "edu/wpi/first/math/proto").glob("*.java")
+    java_files = (output_directory / "org/wpilib/math/proto").glob("*.java")
     for java_file in java_files:
         with (java_file).open(encoding="utf-8") as f:
             content = f.read()

@@ -1,10 +1,12 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     id 'c'
     id 'cpp'
     id 'maven-publish'
 }
 
-apply plugin: 'edu.wpi.first.NativeUtils'
+apply plugin: 'org.wpilib.NativeUtils'
 
 apply from: '../shared/config.gradle'
 
@@ -72,9 +74,6 @@ model {
                 project(':ntcore').addNtcoreDependency(binary, 'static')
                 lib project: ':wpinet', library: 'wpinet', linkage: 'static'
                 lib project: ':wpiutil', library: 'wpiutil', linkage: 'static'
-                if (binary.targetPlatform.name == nativeUtils.wpi.platforms.roborio) {
-                    nativeUtils.useRequiredLibrary(binary, 'netcomm', 'chipobject_headers')
-                }
             }
         }
     }
@@ -82,8 +81,8 @@ model {
 
 def nativeName = 'ntcoreffi'
 def baseArtifactId = nativeName
-def artifactGroupId = "edu.wpi.first.${nativeName}"
-def zipBaseName = "_GROUP_edu_wpi_first_${nativeName}_ID_${nativeName}-cpp_CLS"
+def artifactGroupId = "org.wpilib.${nativeName}"
+def zipBaseName = makeZipBaseName(artifactGroupId, "${baseArtifactId}-cpp")
 def outputsFolder = file("$project.buildDir/outputs")
 
 evaluationDependsOn(':ntcore')
@@ -119,6 +118,10 @@ task cppHeadersZip(type: Zip) {
     }
 }
 
+if (OperatingSystem.current().isWindows() && !project.hasProperty('ntcoreffibuild')) {
+    return
+}
+
 build.dependsOn cppHeadersZip
 addTaskToCopyAllOutputs(cppHeadersZip)
 
@@ -134,8 +137,8 @@ model {
                 artifact cppHeadersZip
 
                 artifactId = "${baseArtifactId}-cpp"
-                groupId artifactGroupId
-                version wpilibVersioning.version.get()
+                groupId = artifactGroupId
+                version = wpilibVersioning.version.get()
             }
         }
     }
